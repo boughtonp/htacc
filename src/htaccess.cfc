@@ -1,0 +1,149 @@
+<cfcomponent output=false >
+
+
+	<cffunction name="init" output=false >
+		<cfargument name="Filename" type="String"  required />
+
+		<cfset var FileContents = FileRead(Filename) />
+
+		<cfset This.Directives = parseConfig(FileContents) />
+
+	</cffunction>
+
+
+	<cffunction name="parseConfig" returntype="Array" output=false >
+		<cfargument name="Text" type="String" required />
+
+		<cfset var Stack = [{Children:[]}] />
+
+		<cfloop index="local.CurLine" array=#Text.split('(?<!\\)\n++\s*+')# >
+
+			<cfif left(CurLine,1) EQ '##' >
+				<cfcontinue />
+
+			<cfelseif left(CurLine,2) EQ '</' >
+				<cfset var SectionName = ListFirst(CurLine,'</ >') />
+
+				<cfif ArrayLen(Stack) LT 2 >
+					<cfthrow
+						type    = "HtaccessCFC.ParseConfig.SectionEnd.NotInSection"
+						message = "Found `#CurLine#` when not in section."
+					/>
+				<cfelseif SectionName NEQ Stack[1].Name >
+					<cfthrow
+						type    = "HtaccessCFC.ParseConfig.SectionEnd.Mismatch"
+						message = "Found `#CurLine#` expected `</#Stack[1].Name#>`"
+					/>
+				</cfif>
+
+				<cfset ArrayAppend( Stack[2].Children , Stack[1] ) />
+				<cfset ArrayDeleteAt(Stack,1) />
+
+			<cfelseif left(CurLine,1) EQ '<' >
+				<cfset var SectionName = ListFirst(CurLine,'< >') />
+
+				<cfset var Params = trim(mid(CurLine,2+len(SectionName))) />
+
+				<cfif Right(Params,1) NEQ '>' >
+					<cfthrow
+						type    = "HtaccessCFC.ParseConfig.SectionStart.MissingClose"
+						message = "Found `#Right(Params,1)#` expected `>`"
+						detail  = "Section tags spanning multiple lines are not supported."
+					/>
+				</cfif>
+
+				<cfset Params = left(Params,len(Params)-1) />
+
+				<cfset ArrayPrepend
+					( Stack
+					,
+						{ Name       : SectionName
+						, Text       : CurLine
+						, ParamText  : Params
+						, ParamArray : parseParams(Params)
+						, Children   : []
+						}
+					)/>
+
+			<cfelse>
+				<cfset ArrayAppend
+					( Stack[1].Children
+					, parseDirective(CurLine)
+					) />
+			</cfif>
+
+		</cfloop>
+
+		<cfif ArrayLen(Stack) GT 1>
+			<cfthrow
+				type    = "HtaccessCFC.ParseConfig.SectionEnd.Missing"
+				message = "Reached end of file without finding `</#Stack[1].Name#>`"
+			/>
+		</cfif>
+
+		<cfreturn Stack[1].Children />
+	</cffunction>
+
+
+	<cffunction name="parseDirective" returntype="Struct" output=false >
+		<cfargument name="Text"  type="String" required />
+
+		<cfset var Directive =
+			{ Text      : Arguments.Text
+			, Name      : ListFirst(Arguments.Text,' ')
+			, ParamText : ListRest(Arguments.Text,' ')
+			}/>
+
+		<cfset Directive.ParamArray = parseParams(Directive.ParamText) />
+
+		<cfreturn Directive />
+	</cffunction>
+
+
+	<cffunction name="parseParams" returntype="Array" output=false >
+		<cfargument name="Text"  type="String" required />
+
+		<cfset var Params = [] />
+
+		<cfset var Text = trim(Text)    />
+		<cfset var StartPos = 1         />
+		<cfset var CharPos  = 0         />
+		<cfset var TextLen  = Len(Text) />
+
+		<cfwhile ++CharPos LTE TextLen >
+
+			<cfset CurChar = mid(Text,CharPos,1) />
+
+			<cfif trim(CurChar) EQ '' AND mid(Text,CharPos-1,1) NEQ '\' >
+
+				<cfset ArrayAppend ( Params , mid(Text,StartPos,1+CharPos-StartPos) )/>
+
+				<cfset StartPos = 1+CharPos />
+
+			<cfelseif CurChar EQ '"' >
+
+				<cfwhile mid(Text,++CharPos,1) NEQ '"' >
+					<cfif CharPos GTE TextLen >
+						<cfthrow
+							type    = "HtaccessCFC.ParseParams.MissingQuote"
+							message = "Reached end of directive without finding closing quote for param starting at `#StartPos#` in `#Text#`"
+						/>
+					</cfif>
+				</cfwhile>
+
+				<cfset ArrayAppend( Params , mid(Text,StartPos,1+CharPos-StartPos) )/>
+				<cfset StartPos = 1+CharPos />
+
+			</cfif>
+
+		</cfwhile>
+
+		<cfif StartPos LT CharPos >
+			<cfset ArrayAppend( Params , mid(Text,StartPos) )/>
+		</cfif>
+
+		<cfreturn Params />
+	</cffunction>
+
+
+</cfcomponent>
