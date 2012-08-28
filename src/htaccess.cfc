@@ -6,6 +6,13 @@
 
 		<cfset var FileContents = FileRead(Filename) />
 
+		<cfset Variables.Modules = {} />
+		<cfset var ModuleFiles = DirectoryList('./modules',true,'name','core.cfc|mod_*.cfc') />
+		<cfloop index="local.CurModule" array=#ModuleFiles# >
+			<cfset CurModule = CurModule.replaceAll('\.cfc$','') />
+			<cfset Modules[CurModule] = createObject('component','modules.#CurModule#') />
+		</cfloop>
+
 		<cfset This.Directives = parseConfig(FileContents) />
 
 	</cffunction>
@@ -65,6 +72,12 @@
 						}
 					)/>
 
+			<cfloop item="local.CurModule" collection=#Modules#>
+				<cfif StructKeyExists(Modules[CurModule],SectionName)>
+					<cfset Stack[1].Param = Modules[CurModule][SectionName](ArgumentCollection=Stack[1].ParamArray) />
+				</cfif>
+			</cfloop>
+
 			<cfelse>
 				<cfset ArrayAppend
 					( Stack[1].Children
@@ -95,6 +108,12 @@
 			}/>
 
 		<cfset Directive.ParamArray = parseParams(Directive.ParamText) />
+
+		<cfloop item="local.CurModule" collection=#Modules#>
+			<cfif StructKeyExists(Modules[CurModule],Directive.Name)>
+				<cfset Directive.Param = Modules[CurModule][Directive.Name](ArgumentCollection=Directive.ParamArray) />
+			</cfif>
+		</cfloop>
 
 		<cfreturn Directive />
 	</cffunction>
