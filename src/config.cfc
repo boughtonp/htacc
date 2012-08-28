@@ -42,12 +42,12 @@
 
 				<cfif ArrayLen(Stack) LT 2 >
 					<cfthrow
-						type    = "HtaccessCFC.ParseConfig.SectionEnd.NotInSection"
+						type    = "Htacc.Config.ParseConfig.SectionEnd.NotInSection"
 						message = "Found `#CurLine#` when not in section."
 					/>
 				<cfelseif SectionName NEQ Stack[1].Name >
 					<cfthrow
-						type    = "HtaccessCFC.ParseConfig.SectionEnd.Mismatch"
+						type    = "Htacc.Config.ParseConfig.SectionEnd.Mismatch"
 						message = "Found `#CurLine#` expected `</#Stack[1].Name#>`"
 					/>
 				</cfif>
@@ -62,7 +62,7 @@
 
 				<cfif Right(Params,1) NEQ '>' >
 					<cfthrow
-						type    = "HtaccessCFC.ParseConfig.SectionStart.MissingClose"
+						type    = "Htacc.Config.ParseConfig.SectionStart.MissingClose"
 						message = "Found `#Right(Params,1)#` expected `>`"
 						detail  = "Section tags spanning multiple lines are not supported."
 					/>
@@ -98,7 +98,7 @@
 
 		<cfif ArrayLen(Stack) GT 1>
 			<cfthrow
-				type    = "HtaccessCFC.ParseConfig.SectionEnd.Missing"
+				type    = "Htacc.Config.ParseConfig.SectionEnd.Missing"
 				message = "Reached end of file without finding `</#Stack[1].Name#>`"
 			/>
 		</cfif>
@@ -153,7 +153,7 @@
 				<cfwhile mid(Text,++CharPos,1) NEQ '"' >
 					<cfif CharPos GTE TextLen >
 						<cfthrow
-							type    = "HtaccessCFC.ParseParams.MissingQuote"
+							type    = "Htacc.Config.ParseParams.MissingQuote"
 							message = "Reached end of directive without finding closing quote for param starting at `#StartPos#` in `#Text#`"
 						/>
 					</cfif>
