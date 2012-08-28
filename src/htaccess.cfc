@@ -2,9 +2,12 @@
 
 
 	<cffunction name="init" output=false >
-		<cfargument name="Filename" type="String"  required />
+		<cfargument name="Filename"        type="String"  required />
+		<cfargument name="IncludeComments" type="Boolean" default=false />
 
 		<cfset var FileContents = FileRead(Filename) />
+
+		<cfset Variables.IncludeComments = Arguments.IncludeComments />
 
 		<cfset Variables.Modules = {} />
 		<cfset var ModuleFiles = DirectoryList('./modules',true,'name','core.cfc|mod_*.cfc') />
@@ -26,7 +29,13 @@
 		<cfloop index="local.CurLine" array=#Text.split('(?<!\\)\n++\s*+')# >
 
 			<cfif left(CurLine,1) EQ '##' >
-				<cfcontinue />
+				<cfif IncludeComments >
+					<cfif ArrayLen(Stack[1].Children) AND StructKeyExists( ArrayLast(Stack[1].Children) , 'Comment' ) >
+						<cfset ArrayLast(Stack[1].Children).Comment &= chr(10) & mid(CurLine,2) />
+					<cfelse>
+						<cfset ArrayAppend( Stack[1].Children , {Comment:mid(CurLine,2)} ) />
+					</cfif>
+				</cfif>
 
 			<cfelseif left(CurLine,2) EQ '</' >
 				<cfset var SectionName = ListFirst(CurLine,'</ >') />
