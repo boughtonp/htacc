@@ -4,7 +4,8 @@ HtAccess / Apache Config CFC v0.0.000
 DESCRIPTION
 ===========
 
-Htacc (HtAccess / Apache Config CFC) is a component for parsing Apache config files, and specifically .htaccess files.
+Htacc (HtAccess / Apache Config CFC) is a component for parsing Apache config files, 
+and specifically .htaccess files. For more information visit the [GitHub Wiki](https://github.com/boughtonp/htacc/wiki)
 
 
 STATUS
